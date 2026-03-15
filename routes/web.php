@@ -31,11 +31,13 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::resource('departments', DepartmentController::class)->except(['show', 'destroy']);
 
         Route::prefix('reports')->name('reports.')->group(function () {
-            Route::get('/',           [ReportController::class, 'index'])->name('index');
-            Route::get('/stock-value',[ReportController::class, 'stockValue'])->name('stock-value');
-            Route::get('/expiry',     [ReportController::class, 'expiry'])->name('expiry');
-            Route::get('/low-stock',  [ReportController::class, 'lowStock'])->name('low-stock');
-        });
+    Route::get('/',             [ReportController::class, 'index'])->name('index');
+    Route::get('/download-pdf', [ReportController::class, 'downloadPdf'])->name('download-pdf');
+    Route::get('/download-excel', [ReportController::class, 'downloadExcel'])->name('download-excel');
+    Route::get('/stock-value',  [ReportController::class, 'stockValue'])->name('stock-value');
+    Route::get('/expiry',       [ReportController::class, 'expiry'])->name('expiry');
+    Route::get('/low-stock',    [ReportController::class, 'lowStock'])->name('low-stock');
+});
     });
 
     // ── Department users ──────────────────────────────────

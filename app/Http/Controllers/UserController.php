@@ -22,10 +22,18 @@ class UserController extends Controller
     }
 
     public function store(StoreUserRequest $request)
-    {
-        User::create($request->validated());
-        return redirect()->route('users.index')->with('success', 'User created.');
-    }
+{
+    User::create([
+        'name'          => $request->name,
+        'email'         => $request->email,
+        'password'      => bcrypt($request->password),
+        'role'          => $request->role,
+        'department_id' => $request->department_id,
+        'is_active'     => $request->boolean('is_active', true),
+        'drawer_number' => $request->drawer_number,
+    ]);
+    return redirect()->route('users.index')->with('success', 'User created successfully.');
+}
 
     public function edit(User $user)
     {
@@ -33,22 +41,28 @@ class UserController extends Controller
         return view('users.edit', compact('user', 'departments'));
     }
 
-    public function update(Request $request, User $user)
-    {
-        $validated = $request->validate([
-            'name'          => 'required|string|max:255',
-            'email'         => "required|email|unique:users,email,{$user->id}",
-            'role'          => 'required|in:admin,pharmacist,lab,theatre,ward',
-            'department_id' => 'nullable|exists:departments,id',
-            'is_active'     => 'boolean',
-            'password'      => ['nullable', Password::min(8)->letters()->numbers()],
-        ]);
+  public function update(Request $request, User $user)
+{
+    $validated = $request->validate([
+        'name'          => 'required|string|max:255',
+        'email'         => "required|email|unique:users,email,{$user->id}",
+        'role'          => 'required|in:admin,pharmacist,lab,theatre,ward',
+        'department_id' => 'nullable|exists:departments,id',
+        'is_active'     => 'boolean',
+        'drawer_number' => 'nullable|integer|in:1,2,3',
+        'password'      => ['nullable', Password::min(8)->letters()->numbers()],
+    ]);
 
-        if (empty($validated['password'])) unset($validated['password']);
+    if (empty($validated['password'])) unset($validated['password']);
 
-        $user->update($validated);
-        return redirect()->route('users.index')->with('success', 'User updated.');
+    // Clear drawer if role is not pharmacist
+    if ($request->role !== 'pharmacist') {
+        $validated['drawer_number'] = null;
     }
+
+    $user->update($validated);
+    return redirect()->route('users.index')->with('success', 'User updated.');
+}
 
     public function destroy(User $user)
     {

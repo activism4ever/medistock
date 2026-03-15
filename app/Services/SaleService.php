@@ -76,6 +76,7 @@ class SaleService
                 'total_profit'   => $totalProfit,
                 'notes'          => $data['notes'] ?? null,
                 'status'         => 'completed',
+		'drawer_number'  => $user->drawer_number,
             ]);
 
             foreach ($lineItems as $line) {

@@ -16,6 +16,7 @@ class StoreUserRequest extends FormRequest
             'password'      => ['required', Password::min(8)->letters()->numbers()],
             'role'          => 'required|in:admin,pharmacist,lab,theatre,ward',
             'department_id' => 'nullable|exists:departments,id',
+	    'drawer_number' => 'nullable|integer|in:1,2,3',
         ];
     }
 }

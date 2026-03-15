@@ -31,6 +31,9 @@
       <div class="flex justify-between"><span class="text-gray-500">Patient</span><span class="font-semibold">{{ $sale->patient_name }}</span></div>
       @if($sale->patient_id)<div class="flex justify-between"><span class="text-gray-500">Patient ID</span><span>{{ $sale->patient_id }}</span></div>@endif
       <div class="flex justify-between"><span class="text-gray-500">Dispensed by</span><span>{{ $sale->soldBy->name }}</span></div>
+@if($sale->drawer_number)
+<div class="flex justify-between"><span class="text-gray-500">Drawer</span><span class="font-semibold text-yellow-600">🗄 Drawer {{ $sale->drawer_number }}</span></div>
+@endif
     </div>
 
     {{-- Items --}}

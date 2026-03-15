@@ -6,7 +6,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Allocation extends Model
 {
-    protected $fillable = ['batch_id', 'department_id', 'quantity_allocated', 'allocated_by', 'notes'];
+    protected $fillable = [
+        'batch_id', 'department_id', 'drawer_number',
+        'quantity_allocated', 'allocated_by', 'notes',
+    ];
 
     public function batch(): BelongsTo       { return $this->belongsTo(Batch::class); }
     public function department(): BelongsTo  { return $this->belongsTo(Department::class); }

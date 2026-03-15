@@ -38,6 +38,7 @@ class AllocationService
             $allocation = Allocation::create([
                 'batch_id'           => $batch->id,
                 'department_id'      => $department->id,
+                'drawer_number'      => $data['drawer_number'] ?? null,
                 'quantity_allocated' => $qty,
                 'allocated_by'       => Auth::id(),
                 'notes'              => $data['notes'] ?? null,
@@ -50,11 +51,17 @@ class AllocationService
             );
             $stock->increment('quantity_remaining', $qty);
 
+            $drawerInfo = isset($data['drawer_number']) ? " (Drawer {$data['drawer_number']})" : '';
             $this->log->log(
                 'stock_allocated',
-                "Allocated {$qty} units of batch #{$batch->batch_number} to {$department->name}",
+                "Allocated {$qty} units of batch #{$batch->batch_number} to {$department->name}{$drawerInfo}",
                 Allocation::class, $allocation->id,
-                ['batch_id' => $batch->id, 'department_id' => $department->id, 'qty' => $qty]
+                [
+                    'batch_id'      => $batch->id,
+                    'department_id' => $department->id,
+                    'drawer_number' => $data['drawer_number'] ?? null,
+                    'qty'           => $qty,
+                ]
             );
 
             return $allocation;

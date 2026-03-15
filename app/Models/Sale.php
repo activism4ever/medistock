@@ -10,7 +10,9 @@ class Sale extends Model
     protected $fillable = [
         'receipt_number', 'department_id', 'sold_by', 'patient_name',
         'patient_id', 'total_amount', 'total_profit', 'status', 'notes',
+        'drawer_number',
     ];
+
     protected $casts = [
         'total_amount' => 'decimal:2',
         'total_profit' => 'decimal:2',

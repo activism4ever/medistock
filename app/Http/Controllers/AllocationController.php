@@ -24,9 +24,8 @@ class AllocationController extends Controller
         $batches = Batch::with('medicine')
             ->where('quantity_remaining', '>', 0)
             ->where('expiry_date', '>', now())->get();
-        $departments  = Department::where('is_active', true)->orderBy('name')->get();
+        $departments   = Department::where('is_active', true)->orderBy('name')->get();
         $selectedBatch = $request->batch_id ? Batch::with('medicine')->find($request->batch_id) : null;
-
         return view('allocations.create', compact('batches', 'departments', 'selectedBatch'));
     }
 

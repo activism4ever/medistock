@@ -13,6 +13,7 @@
           <th class="text-left px-5 py-3 font-semibold text-gray-600">Email</th>
           <th class="text-left px-5 py-3 font-semibold text-gray-600">Role</th>
           <th class="text-left px-5 py-3 font-semibold text-gray-600">Department</th>
+          <th class="text-center px-5 py-3 font-semibold text-gray-600">Drawer</th>
           <th class="text-center px-5 py-3 font-semibold text-gray-600">Status</th>
           <th class="px-5 py-3"></th>
         </tr>
@@ -37,6 +38,15 @@
           </td>
           <td class="px-5 py-3 text-gray-500">{{ $u->department?->name ?? '—' }}</td>
           <td class="px-5 py-3 text-center">
+            @if($u->role === 'pharmacist' && $u->drawer_number)
+              <span class="bg-yellow-100 text-yellow-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">
+                🗄 Drawer {{ $u->drawer_number }}
+              </span>
+            @else
+              <span class="text-gray-300 text-xs">—</span>
+            @endif
+          </td>
+          <td class="px-5 py-3 text-center">
             <span class="text-xs px-2 py-0.5 rounded-full {{ $u->is_active?'bg-green-100 text-green-700':'bg-gray-100 text-gray-500' }}">
               {{ $u->is_active?'Active':'Inactive' }}
             </span>
@@ -53,7 +63,7 @@
           </td>
         </tr>
         @empty
-        <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400">No users found.</td></tr>
+        <tr><td colspan="7" class="px-5 py-10 text-center text-gray-400">No users found.</td></tr>
         @endforelse
       </tbody>
     </table>

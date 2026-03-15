@@ -12,6 +12,7 @@ class StoreAllocationRequest extends FormRequest
         return [
             'batch_id'           => 'required|exists:batches,id',
             'department_id'      => 'required|exists:departments,id',
+            'drawer_number'      => 'nullable|integer|in:1,2,3',
             'quantity_allocated' => 'required|integer|min:1',
             'notes'              => 'nullable|string|max:500',
         ];

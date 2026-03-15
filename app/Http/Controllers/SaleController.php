@@ -23,16 +23,28 @@ class SaleController extends Controller
     }
 
     public function create(Request $request)
-    {
-        $user  = $request->user();
-        $stock = DepartmentStock::with('batch.medicine')
-            ->where('department_id', $user->department_id)
-            ->where('quantity_remaining', '>', 0)
-            ->whereHas('batch', fn($q) => $q->where('expiry_date', '>', now()))
-            ->get();
+{
+    $user  = $request->user();
+    $stock = DepartmentStock::with('batch.medicine')
+        ->where('department_id', $user->department_id)
+        ->where('quantity_remaining', '>', 0)
+        ->whereHas('batch', fn($q) => $q->where('expiry_date', '>', now()))
+        ->get();
 
-        return view('sales.create', compact('stock'));
-    }
+    $stockData = $stock->map(function($s) {
+        return [
+            'id'            => $s->id,
+            'batch_id'      => $s->batch_id,
+            'batch_number'  => $s->batch->batch_number,
+            'medicine_name' => $s->batch->medicine->name,
+            'price'         => (float) $s->batch->selling_price,
+            'expiry_date'   => $s->batch->expiry_date->format('d M Y'),
+            'qty'           => $s->quantity_remaining,
+        ];
+    })->values();
+
+    return view('sales.create', compact('stock', 'stockData'));
+}
 
     public function store(StoreSaleRequest $request)
     {

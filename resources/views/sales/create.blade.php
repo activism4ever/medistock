@@ -118,16 +118,7 @@
 
 @push('scripts')
 <script>
-const _stock = @json($stock->map(fn($s) => [
-    'id'           => $s->id,
-    'batch_id'     => $s->batch_id,
-    'batch_number' => $s->batch->batch_number,
-    'medicine_name'=> $s->batch->medicine->name,
-    'price'        => (float) $s->batch->selling_price,
-    'expiry_date'  => $s->batch->expiry_date->format('d M Y'),
-    'qty'          => $s->quantity_remaining,
-]));
-
+const _stock = @json($stockData);
 function posSystem() {
     return {
         search: '',
