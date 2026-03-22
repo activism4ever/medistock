@@ -11,21 +11,14 @@ class SaleService
 {
     public function __construct(private ActivityLogService $log) {}
 
-    /**
-     * Process a POS sale.
-     *
-     * @param array $data   ['patient_name', 'patient_id'?, 'notes'?]
-     * @param array $items  [['batch_id' => int, 'quantity' => int], ...]
-     */
     public function process(array $data, array $items): Sale
     {
         return DB::transaction(function () use ($data, $items) {
             $user         = Auth::user();
             $departmentId = $user->department_id;
-
-            $totalAmount = 0;
-            $totalProfit = 0;
-            $lineItems   = [];
+            $totalAmount  = 0;
+            $totalProfit  = 0;
+            $lineItems    = [];
 
             foreach ($items as $item) {
                 $stock = DepartmentStock::lockForUpdate()
@@ -54,7 +47,6 @@ class SaleService
                 $profit       = ($batch->selling_price - $batch->purchase_price) * $qty;
                 $totalAmount += $batch->selling_price * $qty;
                 $totalProfit += $profit;
-
                 $stock->decrement('quantity_remaining', $qty);
 
                 $lineItems[] = [
@@ -66,17 +58,33 @@ class SaleService
                 ];
             }
 
+            // Insurance calculation
+            $isInsurance     = ($data['sale_type'] ?? 'normal') === 'insurance';
+            $copaymentAmount = null;
+            $insuranceAmount = null;
+
+            if ($isInsurance) {
+                $copaymentAmount = round($totalAmount * 0.10, 2);
+                $insuranceAmount = round($totalAmount * 0.90, 2);
+            }
+
             $sale = Sale::create([
-                'receipt_number' => $this->receiptNumber(),
-                'department_id'  => $departmentId,
-                'sold_by'        => $user->id,
-                'patient_name'   => $data['patient_name'],
-                'patient_id'     => $data['patient_id'] ?? null,
-                'total_amount'   => $totalAmount,
-                'total_profit'   => $totalProfit,
-                'notes'          => $data['notes'] ?? null,
-                'status'         => 'completed',
-		'drawer_number'  => $user->drawer_number,
+                'receipt_number'      => $this->receiptNumber(),
+                'department_id'       => $departmentId,
+                'sold_by'             => $user->id,
+                'patient_name'        => $data['patient_name'],
+                'patient_id'          => $data['patient_id'] ?? null,
+                'total_amount'        => $totalAmount,
+                'total_profit'        => $totalProfit,
+                'notes'               => $data['notes'] ?? null,
+                'status'              => 'completed',
+                'drawer_number'       => $user->drawer_number,
+                'sale_type'           => $data['sale_type'] ?? 'normal',
+                'insurance_scheme_id' => $isInsurance ? ($data['insurance_scheme_id'] ?? null) : null,
+                'enrolee_name'        => $isInsurance ? ($data['enrolee_name'] ?? null) : null,
+                'enrolee_id'          => $isInsurance ? ($data['enrolee_id'] ?? null) : null,
+                'copayment_amount'    => $copaymentAmount,
+                'insurance_amount'    => $insuranceAmount,
             ]);
 
             foreach ($lineItems as $line) {
@@ -85,12 +93,13 @@ class SaleService
 
             $this->log->log(
                 'sale_completed',
-                "Sale #{$sale->receipt_number} — Patient: {$sale->patient_name} — Total: {$totalAmount}",
+                "Sale #{$sale->receipt_number} — {$sale->patient_name} — Total: {$totalAmount}" .
+                ($isInsurance ? " [Insurance: {$sale->insuranceScheme?->name}]" : ''),
                 Sale::class, $sale->id,
-                ['items' => count($items), 'amount' => $totalAmount]
+                ['items' => count($items), 'amount' => $totalAmount, 'type' => $sale->sale_type]
             );
 
-            return $sale->load('items.batch.medicine', 'department', 'soldBy');
+            return $sale->load('items.batch.medicine', 'department', 'soldBy', 'insuranceScheme');
         });
     }
 

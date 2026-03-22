@@ -12,47 +12,66 @@ class ReportController extends Controller
 {
     public function __construct(private ReportService $reports) {}
 
-    public function index(Request $request)
-    {
-        $period  = $request->get('period', 'monthly');
-        $data    = $this->reports->salesReport($period);
-        $sales   = $data['sales'];
-        $summary = $data['summary'];
-        return view('reports.index', compact('sales', 'summary', 'period'));
-    }
+public function index(Request $request)
+{
+    $period   = $request->get('period', 'monthly');
+    $drawer   = $request->get('drawer');
+    $saleType = $request->get('sale_type');
+    $schemeId = $request->get('scheme_id');
 
-    public function downloadPdf(Request $request)
-    {
-        $period = $request->get('period', 'monthly');
+    $data    = $this->reports->salesReport($period, $drawer, $saleType, $schemeId);
+    $sales   = $data['sales'];
+    $summary = $data['summary'];
+    $schemes = \App\Models\InsuranceScheme::where('is_active', true)->orderBy('name')->get();
 
-        $q = Sale::with(['department', 'soldBy'])->where('status', 'completed');
-        if ($period === 'daily')       $q->whereDate('created_at', today());
-        elseif ($period === 'monthly') $q->whereMonth('created_at', now()->month)
-                                        ->whereYear('created_at', now()->year);
+    return view('reports.index', compact('sales', 'summary', 'period', 'schemes'));
+}
 
-        $sales   = $q->latest()->get();
-        $summary = [
-            'total_amount' => $sales->sum('total_amount'),
-            'total_profit' => $sales->sum('total_profit'),
-            'total_count'  => $sales->count(),
-        ];
+public function downloadPdf(Request $request)
+{
+    $period   = $request->get('period', 'monthly');
+    $drawer   = $request->get('drawer');
+    $saleType = $request->get('sale_type');
+    $schemeId = $request->get('scheme_id');
 
-        $periodLabel = match($period) {
-            'daily'   => 'Today — ' . now()->format('d M Y'),
-            'monthly' => now()->format('F Y'),
-            default   => 'All Time',
-        };
+    $q = Sale::with(['department', 'soldBy', 'insuranceScheme'])->where('status', 'completed');
+    if ($period === 'daily')       $q->whereDate('created_at', today());
+    elseif ($period === 'monthly') $q->whereMonth('created_at', now()->month)
+                                    ->whereYear('created_at', now()->year);
+    if ($drawer)   $q->where('drawer_number', $drawer);
+    if ($saleType) $q->where('sale_type', $saleType);
+    if ($schemeId) $q->where('insurance_scheme_id', $schemeId);
 
-        $pdf = Pdf::loadView('reports.pdf.sales', compact('sales', 'summary', 'period', 'periodLabel'))
-            ->setPaper('a4', 'landscape');
+    $sales   = $q->latest()->get();
+    $summary = [
+        'total_amount'        => $sales->sum('total_amount'),
+        'total_profit'        => $sales->sum('total_profit'),
+        'total_count'         => $sales->count(),
+        'insurance_count'     => $sales->where('sale_type', 'insurance')->count(),
+        'insurance_amount'    => $sales->where('sale_type', 'insurance')->sum('insurance_amount'),
+        'copayment_collected' => $sales->where('sale_type', 'insurance')->sum('copayment_amount'),
+    ];
 
-        return $pdf->download('sales-report-' . $period . '-' . now()->format('Ymd') . '.pdf');
-    }
+    $periodLabel = match($period) {
+        'daily'   => 'Today — ' . now()->format('d M Y'),
+        'monthly' => now()->format('F Y'),
+        default   => 'All Time',
+    };
+
+    $pdf = Pdf::loadView('reports.pdf.sales', compact('sales', 'summary', 'period', 'periodLabel'))
+        ->setPaper('a4', 'landscape');
+
+    return $pdf->download('sales-report-' . $period . '-' . now()->format('Ymd') . '.pdf');
+}
+
 public function downloadExcel(Request $request)
 {
     $period   = $request->get('period', 'monthly');
+    $drawer   = $request->get('drawer');
+    $saleType = $request->get('sale_type');
+    $schemeId = $request->get('scheme_id');
     $filename = 'sales-report-' . $period . '-' . now()->format('Ymd') . '.xlsx';
-    return Excel::download(new SalesExport($period), $filename);
+    return Excel::download(new \App\Exports\SalesExport($period, $drawer, $saleType, $schemeId), $filename);
 }
     public function stockValue()
     {

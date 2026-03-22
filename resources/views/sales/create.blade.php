@@ -1,6 +1,13 @@
 @extends('layouts.app')
 @section('title','New Sale') @section('page-title','New Sale / Dispense')
 @section('content')
+
+@if(auth()->user()->drawer_number)
+<div class="mb-4 bg-yellow-50 border border-yellow-200 rounded-xl px-5 py-3 flex items-center gap-2">
+  <span class="text-yellow-600 font-bold text-sm">🗄 You are on Drawer {{ auth()->user()->drawer_number }}</span>
+</div>
+@endif
+
 <div class="pt-2" x-data="posSystem()">
   <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
@@ -27,7 +34,7 @@
             </div>
           </template>
           <div x-show="filteredStock.length===0" class="py-12 text-center text-sm text-gray-400">
-            No available stock found for "{{ '{ search }' }}"
+            No available stock found
           </div>
         </div>
       </div>
@@ -44,6 +51,7 @@
           @csrf
           <div class="px-5 py-4 space-y-4">
 
+            {{-- Patient Info --}}
             <div>
               <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Patient Name *</label>
               <input type="text" name="patient_name" required
@@ -57,10 +65,79 @@
                 placeholder="Hospital file / ID number">
             </div>
 
+            {{-- ── Sale Type Toggle ─────────────────────── --}}
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Sale Type</label>
+              <div class="flex rounded-xl overflow-hidden border border-gray-300">
+                <label class="flex-1 text-center cursor-pointer">
+                  <input type="radio" name="sale_type" value="normal" x-model="saleType" class="sr-only">
+                  <span class="block px-3 py-2 text-sm font-medium transition"
+                    :class="saleType==='normal' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'">
+                    Normal
+                  </span>
+                </label>
+                <label class="flex-1 text-center cursor-pointer border-l border-gray-300">
+                  <input type="radio" name="sale_type" value="insurance" x-model="saleType" class="sr-only">
+                  <span class="block px-3 py-2 text-sm font-medium transition"
+                    :class="saleType==='insurance' ? 'bg-green-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'">
+                    🏥 Insurance
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {{-- ── Insurance Fields ─────────────────────── --}}
+            <div x-show="saleType==='insurance'" x-transition class="space-y-3 bg-green-50 border border-green-200 rounded-xl p-4">
+              <p class="text-xs font-bold text-green-700 uppercase tracking-wide">Insurance Details</p>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Insurance Scheme *</label>
+                <select name="insurance_scheme_id"
+                  class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="">-- Select Scheme --</option>
+                  @foreach($schemes as $scheme)
+                  <option value="{{ $scheme->id }}">{{ $scheme->name }}</option>
+                  @endforeach
+                </select>
+                @error('insurance_scheme_id')<p class="text-red-600 text-xs mt-1">{{ $message }}</p>@enderror
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Enrolee Name *</label>
+                <input type="text" name="enrolee_name"
+                  class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="Full name on insurance card">
+                @error('enrolee_name')<p class="text-red-600 text-xs mt-1">{{ $message }}</p>@enderror
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Enrolee ID *</label>
+                <input type="text" name="enrolee_id"
+                  class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="Insurance ID number">
+                @error('enrolee_id')<p class="text-red-600 text-xs mt-1">{{ $message }}</p>@enderror
+              </div>
+
+              {{-- Co-payment preview --}}
+              <div x-show="total > 0" class="bg-white rounded-xl border border-green-200 p-3 space-y-1.5 text-xs">
+                <div class="flex justify-between text-gray-600">
+                  <span>Total Drug Cost</span>
+                  <span class="font-semibold">&#x20A6;<span x-text="total.toFixed(2)"></span></span>
+                </div>
+                <div class="flex justify-between text-green-700">
+                  <span>Insurance Covers (90%)</span>
+                  <span class="font-semibold">&#x20A6;<span x-text="(total*0.9).toFixed(2)"></span></span>
+                </div>
+                <div class="flex justify-between text-red-600 font-bold border-t border-green-100 pt-1.5">
+                  <span>Patient Pays (10%)</span>
+                  <span>&#x20A6;<span x-text="(total*0.1).toFixed(2)"></span></span>
+                </div>
+              </div>
+            </div>
+
             {{-- Cart items --}}
             <div>
               <p class="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">Items</p>
-
               <div class="space-y-2 max-h-60 overflow-y-auto" x-show="cart.length>0">
                 <template x-for="(item,index) in cart" :key="item.batch_id">
                   <div class="bg-gray-50 rounded-xl px-3 py-3">
@@ -83,7 +160,6 @@
                   </div>
                 </template>
               </div>
-
               <div x-show="cart.length===0"
                 class="py-8 text-center text-xs text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">
                 Click items on the left to add them to the cart
@@ -91,9 +167,19 @@
             </div>
 
             {{-- Total --}}
-            <div x-show="cart.length>0" class="bg-blue-600 rounded-xl px-4 py-3 flex justify-between items-center">
-              <span class="text-white font-semibold text-sm">TOTAL</span>
-              <span class="text-white font-bold text-xl">&#x20A6;<span x-text="total.toFixed(2)"></span></span>
+            <div x-show="cart.length>0">
+              <template x-if="saleType==='normal'">
+                <div class="bg-blue-600 rounded-xl px-4 py-3 flex justify-between items-center">
+                  <span class="text-white font-semibold text-sm">TOTAL</span>
+                  <span class="text-white font-bold text-xl">&#x20A6;<span x-text="total.toFixed(2)"></span></span>
+                </div>
+              </template>
+              <template x-if="saleType==='insurance'">
+                <div class="bg-green-600 rounded-xl px-4 py-3 flex justify-between items-center">
+                  <span class="text-white font-semibold text-sm">PATIENT PAYS (10%)</span>
+                  <span class="text-white font-bold text-xl">&#x20A6;<span x-text="(total*0.1).toFixed(2)"></span></span>
+                </div>
+              </template>
             </div>
 
             <div>
@@ -102,12 +188,14 @@
                 class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Optional notes..."></textarea>
             </div>
+
           </div>
 
           <div class="px-5 pb-5">
             <button type="submit" :disabled="cart.length===0"
-              class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition text-sm shadow-lg shadow-blue-500/20 disabled:shadow-none">
-              Complete Sale &rarr;
+              class="w-full disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition text-sm shadow-lg disabled:shadow-none"
+              :class="saleType==='insurance' ? 'bg-green-600 hover:bg-green-700 shadow-green-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'">
+              <span x-text="saleType==='insurance' ? 'Complete Insurance Sale →' : 'Complete Sale →'"></span>
             </button>
           </div>
         </form>
@@ -121,10 +209,11 @@
 const _stock = @json($stockData);
 function posSystem() {
     return {
-        search: '',
-        cart: [],
-        total: 0,
-        stock: _stock,
+        search:   '',
+        cart:     [],
+        total:    0,
+        saleType: 'normal',
+        stock:    _stock,
         get filteredStock() {
             if (!this.search) return this.stock;
             const q = this.search.toLowerCase();

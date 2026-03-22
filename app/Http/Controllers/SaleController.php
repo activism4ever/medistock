@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreSaleRequest;
 use App\Models\DepartmentStock;
+use App\Models\InsuranceScheme;
 use App\Models\Sale;
 use App\Services\SaleService;
 use Illuminate\Http\Request;
@@ -14,43 +15,48 @@ class SaleController extends Controller
     public function index(Request $request)
     {
         $user  = $request->user();
-        $sales = Sale::with('soldBy', 'department')
+        $sales = Sale::with('soldBy', 'department', 'insuranceScheme')
             ->when(!$user->isAdmin(), fn($q) => $q->where('department_id', $user->department_id))
             ->when($request->date, fn($q) => $q->whereDate('created_at', $request->date))
             ->latest()->paginate(20);
-
         return view('sales.index', compact('sales'));
     }
 
     public function create(Request $request)
-{
-    $user  = $request->user();
-    $stock = DepartmentStock::with('batch.medicine')
-        ->where('department_id', $user->department_id)
-        ->where('quantity_remaining', '>', 0)
-        ->whereHas('batch', fn($q) => $q->where('expiry_date', '>', now()))
-        ->get();
+    {
+        $user  = $request->user();
+        $stock = DepartmentStock::with('batch.medicine')
+            ->where('department_id', $user->department_id)
+            ->where('quantity_remaining', '>', 0)
+            ->whereHas('batch', fn($q) => $q->where('expiry_date', '>', now()))
+            ->get();
 
-    $stockData = $stock->map(function($s) {
-        return [
-            'id'            => $s->id,
-            'batch_id'      => $s->batch_id,
-            'batch_number'  => $s->batch->batch_number,
-            'medicine_name' => $s->batch->medicine->name,
-            'price'         => (float) $s->batch->selling_price,
-            'expiry_date'   => $s->batch->expiry_date->format('d M Y'),
-            'qty'           => $s->quantity_remaining,
-        ];
-    })->values();
+        $stockData = $stock->map(function($s) {
+            return [
+                'id'            => $s->id,
+                'batch_id'      => $s->batch_id,
+                'batch_number'  => $s->batch->batch_number,
+                'medicine_name' => $s->batch->medicine->name,
+                'price'         => (float) $s->batch->selling_price,
+                'expiry_date'   => $s->batch->expiry_date->format('d M Y'),
+                'qty'           => $s->quantity_remaining,
+            ];
+        })->values();
 
-    return view('sales.create', compact('stock', 'stockData'));
-}
+        $schemes = InsuranceScheme::where('is_active', true)->orderBy('name')->get();
+
+        return view('sales.create', compact('stock', 'stockData', 'schemes'));
+    }
 
     public function store(StoreSaleRequest $request)
     {
         try {
             $sale = $this->sales->process(
-                $request->only(['patient_name', 'patient_id', 'notes']),
+                $request->only([
+                    'patient_name', 'patient_id', 'notes',
+                    'sale_type', 'insurance_scheme_id',
+                    'enrolee_name', 'enrolee_id',
+                ]),
                 $request->input('items', [])
             );
             return redirect()->route('sales.receipt', $sale)
@@ -63,14 +69,14 @@ class SaleController extends Controller
     public function show(Sale $sale)
     {
         $this->guard($sale);
-        $sale->load('items.batch.medicine', 'department', 'soldBy');
+        $sale->load('items.batch.medicine', 'department', 'soldBy', 'insuranceScheme');
         return view('sales.show', compact('sale'));
     }
 
     public function receipt(Sale $sale)
     {
         $this->guard($sale);
-        $sale->load('items.batch.medicine', 'department', 'soldBy');
+        $sale->load('items.batch.medicine', 'department', 'soldBy', 'insuranceScheme');
         return view('sales.receipt', compact('sale'));
     }
 

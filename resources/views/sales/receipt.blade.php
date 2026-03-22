@@ -11,9 +11,10 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex items-start justify-center py-8 px-4">
   <div class="bg-white w-72 shadow-2xl rounded-2xl p-6">
+
     {{-- Header --}}
     <div class="text-center mb-4 border-b border-dashed border-gray-300 pb-4">
-      <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 mb-2">
+      <div class="inline-flex items-center justify-center w-10 h-10 rounded-full {{ $sale->isInsurance() ? 'bg-green-600' : 'bg-blue-600' }} mb-2">
         <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
@@ -22,19 +23,36 @@
       <p class="font-bold text-lg leading-tight">MEDISTOCK POS</p>
       <p class="text-gray-500 text-xs">Hospital Medicine System</p>
       <p class="text-gray-500 text-xs">{{ $sale->department->name }}</p>
+      @if($sale->isInsurance())
+      <div class="mt-2 bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full inline-block">
+        🏥 INSURANCE SALE
+      </div>
+      @endif
     </div>
 
-    {{-- Info --}}
+    {{-- Patient & Sale Info --}}
     <div class="text-xs space-y-1 mb-4 border-b border-dashed border-gray-300 pb-4">
       <div class="flex justify-between"><span class="text-gray-500">Receipt #</span><span class="font-bold">{{ $sale->receipt_number }}</span></div>
       <div class="flex justify-between"><span class="text-gray-500">Date</span><span>{{ $sale->created_at->format('d/m/Y H:i') }}</span></div>
       <div class="flex justify-between"><span class="text-gray-500">Patient</span><span class="font-semibold">{{ $sale->patient_name }}</span></div>
-      @if($sale->patient_id)<div class="flex justify-between"><span class="text-gray-500">Patient ID</span><span>{{ $sale->patient_id }}</span></div>@endif
+      @if($sale->patient_id)
+      <div class="flex justify-between"><span class="text-gray-500">Patient ID</span><span>{{ $sale->patient_id }}</span></div>
+      @endif
       <div class="flex justify-between"><span class="text-gray-500">Dispensed by</span><span>{{ $sale->soldBy->name }}</span></div>
-@if($sale->drawer_number)
-<div class="flex justify-between"><span class="text-gray-500">Drawer</span><span class="font-semibold text-yellow-600">🗄 Drawer {{ $sale->drawer_number }}</span></div>
-@endif
+      @if($sale->drawer_number)
+      <div class="flex justify-between"><span class="text-gray-500">Drawer</span><span class="font-semibold text-yellow-600">🗄 Drawer {{ $sale->drawer_number }}</span></div>
+      @endif
     </div>
+
+    {{-- Insurance Enrolee Info --}}
+    @if($sale->isInsurance())
+    <div class="text-xs space-y-1 mb-4 border-b border-dashed border-gray-300 pb-4 bg-green-50 rounded-xl px-3 py-3">
+      <p class="font-bold text-green-700 text-xs mb-2 uppercase tracking-wide">Insurance Details</p>
+      <div class="flex justify-between"><span class="text-gray-500">Scheme</span><span class="font-bold text-green-700">{{ $sale->insuranceScheme->name }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">Enrolee Name</span><span class="font-semibold">{{ $sale->enrolee_name }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">Enrolee ID</span><span class="font-mono">{{ $sale->enrolee_id }}</span></div>
+    </div>
+    @endif
 
     {{-- Items --}}
     <table class="w-full text-xs mb-4">
@@ -56,12 +74,32 @@
       </tbody>
     </table>
 
+    {{-- Totals --}}
+    @if($sale->isInsurance())
+    {{-- Insurance breakdown --}}
+    <div class="border-t border-gray-200 pt-2 mb-4 space-y-1.5 text-xs">
+      <div class="flex justify-between text-gray-600">
+        <span>Total Drug Cost</span>
+        <span class="font-semibold">&#x20A6;{{ number_format($sale->total_amount, 2) }}</span>
+      </div>
+      <div class="flex justify-between text-green-600">
+        <span>{{ $sale->insuranceScheme->name }} Covers (90%)</span>
+        <span class="font-semibold">&#x20A6;{{ number_format($sale->insurance_amount, 2) }}</span>
+      </div>
+      <div class="flex justify-between text-red-600 font-bold border-t-2 border-gray-900 pt-2 text-sm">
+        <span>PATIENT PAYS (10%)</span>
+        <span>&#x20A6;{{ number_format($sale->copayment_amount, 2) }}</span>
+      </div>
+    </div>
+    @else
+    {{-- Normal total --}}
     <div class="border-t-2 border-gray-900 pt-2 mb-4">
       <div class="flex justify-between font-bold text-base">
         <span>TOTAL</span>
         <span>&#x20A6;{{ number_format($sale->total_amount,2) }}</span>
       </div>
     </div>
+    @endif
 
     <div class="text-center text-xs text-gray-400 border-t border-dashed border-gray-300 pt-4">
       <p class="font-medium">Thank you for your visit.</p>
@@ -72,7 +110,7 @@
 
   <div class="no-print fixed bottom-6 right-6 flex gap-3">
     <button onclick="window.print()"
-      class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-xl shadow-blue-500/20">
+      class="{{ $sale->isInsurance() ? 'bg-green-600 hover:bg-green-700 shadow-green-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20' }} text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-xl">
       &#x1F5A8; Print
     </button>
     <a href="{{ route('sales.index') }}"

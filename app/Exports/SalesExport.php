@@ -17,17 +17,25 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, WithStyl
 {
     private int $rowIndex = 0;
 
-    public function __construct(private string $period = 'monthly') {}
+    public function __construct(
+    private string  $period   = 'monthly',
+    private ?string $drawer   = null,
+    private ?string $saleType = null,
+    private ?int    $schemeId = null
+) {}
 
-    public function collection()
-    {
-        $q = Sale::with(['department', 'soldBy'])->where('status', 'completed');
-        if ($this->period === 'daily')
-            $q->whereDate('created_at', today());
-        elseif ($this->period === 'monthly')
-            $q->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year);
-        return $q->latest()->get();
-    }
+public function collection()
+{
+    $q = Sale::with(['department', 'soldBy', 'insuranceScheme'])->where('status', 'completed');
+    if ($this->period === 'daily')
+        $q->whereDate('created_at', today());
+    elseif ($this->period === 'monthly')
+        $q->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year);
+    if ($this->drawer)   $q->where('drawer_number', $this->drawer);
+    if ($this->saleType) $q->where('sale_type', $this->saleType);
+    if ($this->schemeId) $q->where('insurance_scheme_id', $this->schemeId);
+    return $q->latest()->get();
+}
 
     public function headings(): array
     {

@@ -32,9 +32,15 @@
         <label class="block text-sm font-medium text-gray-700 mb-1.5">Role *</label>
         <select name="role" x-model="role" required
           class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          @foreach(['admin','pharmacist','lab','theatre','ward'] as $r)
-          <option value="{{ $r }}" {{ old('role')==$r?'selected':'' }}>{{ ucfirst($r) }}</option>
-          @endforeach
+         @foreach(['admin','pharmacist','lab','theatre','ward','hod_pharmacy','cashier'] as $r)
+<option value="{{ $r }}" {{ old('role')==$r?'selected':'' }}>
+  {{ match($r) {
+    'hod_pharmacy' => 'HOD Pharmacy',
+    'cashier'      => 'Cashier',
+    default        => ucfirst($r)
+  } }}
+</option>
+@endforeach
         </select>
         @error('role')<p class="text-red-600 text-xs mt-1">{{ $message }}</p>@enderror
       </div>

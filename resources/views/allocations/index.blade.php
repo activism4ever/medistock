@@ -12,6 +12,7 @@
           <th class="text-left px-5 py-3 font-semibold text-gray-600">Medicine</th>
           <th class="text-left px-5 py-3 font-semibold text-gray-600">Batch #</th>
           <th class="text-left px-5 py-3 font-semibold text-gray-600">Department</th>
+          <th class="text-left px-5 py-3 font-semibold text-gray-600">Drawer</th>
           <th class="text-right px-5 py-3 font-semibold text-gray-600">Qty Allocated</th>
           <th class="text-left px-5 py-3 font-semibold text-gray-600">Allocated By</th>
           <th class="text-left px-5 py-3 font-semibold text-gray-600">Date</th>
@@ -23,14 +24,25 @@
           <td class="px-5 py-3 font-medium text-gray-800">{{ $a->batch->medicine->name }}</td>
           <td class="px-5 py-3 font-mono text-gray-500">{{ $a->batch->batch_number }}</td>
           <td class="px-5 py-3">
-            <span class="bg-indigo-100 text-indigo-700 text-xs px-2.5 py-0.5 rounded-full font-medium">{{ $a->department->name }}</span>
+            <span class="bg-indigo-100 text-indigo-700 text-xs px-2.5 py-0.5 rounded-full font-medium">
+              {{ $a->department->name }}
+            </span>
+          </td>
+          <td class="px-5 py-3">
+            @if($a->drawer_number)
+              <span class="bg-yellow-100 text-yellow-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">
+                🗄 Drawer {{ $a->drawer_number }}
+              </span>
+            @else
+              <span class="text-gray-300 text-xs">—</span>
+            @endif
           </td>
           <td class="px-5 py-3 text-right font-bold text-blue-700">{{ number_format($a->quantity_allocated) }}</td>
           <td class="px-5 py-3 text-gray-500">{{ $a->allocatedBy->name }}</td>
           <td class="px-5 py-3 text-gray-400">{{ $a->created_at->format('d M Y H:i') }}</td>
         </tr>
         @empty
-        <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400">No allocations yet.</td></tr>
+        <tr><td colspan="7" class="px-5 py-10 text-center text-gray-400">No allocations yet.</td></tr>
         @endforelse
       </tbody>
     </table>
